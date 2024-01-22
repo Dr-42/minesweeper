@@ -80,25 +80,11 @@ void get_move(board_t* board){
 	switch(move){
 		case 'r': {
 			wprintf(L"Revealing cell at %d, %d\n", x, y);
-			game_state_t state = make_move(board, MOVE_TYPE_REVEAL, x, y);
-			if(state == GAME_STATE_LOST){
-				wprintf(L"You lose!\n");
-				print_board(board);
-			} else if(state == GAME_STATE_WON){
-				wprintf(L"You win!\n");
-				print_board(board);
-			}
+			make_move(board, MOVE_TYPE_REVEAL, x, y);
 		} break;
 		case 'f': {
 			wprintf(L"Flagging cell at %d, %d\n", x, y);
-			game_state_t state = make_move(board, MOVE_TYPE_FLAG, x, y);
-			if(state == GAME_STATE_LOST){
-				wprintf(L"You lose!\n");
-				print_board(board);
-			} else if(state == GAME_STATE_WON){
-				wprintf(L"You win!\n");
-				print_board(board);
-			}
+			make_move(board, MOVE_TYPE_FLAG, x, y);
 		} break;
 		default: {
 			wprintf(L"Invalid move\n");

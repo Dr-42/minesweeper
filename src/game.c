@@ -1,5 +1,7 @@
 #include "game.h"
 
+#include <wchar.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
 
@@ -65,18 +67,11 @@ void board_free(board_t *board) {
 	free(board);
 }
 
-game_state_t make_move(board_t *board, move_type_t move_type, uint8_t x, uint8_t y) {
-	if (board->state != GAME_STATE_PLAYING) {
-		return board->state;
-	}
+void make_move(board_t *board, move_type_t move_type, uint8_t x, uint8_t y) {
 	int idx = y * BOARD_SIZE + x;
 	cell_t *cell = &board->cells[idx];
 	if (cell->revealed) {
-		return GAME_STATE_PLAYING;
-	}
-	
-	if (cell->flagged && move_type == MOVE_TYPE_REVEAL) {
-		return GAME_STATE_PLAYING;
+		return;
 	}
 
 	if (move_type == MOVE_TYPE_FLAG) {
@@ -85,46 +80,58 @@ game_state_t make_move(board_t *board, move_type_t move_type, uint8_t x, uint8_t
 			board->flags_remaining++;
 		} else {
 			if (board->flags_remaining == 0) {
-				return GAME_STATE_PLAYING;
+				return;
 			}
 			cell->flagged = true;
 			board->flags_remaining--;
 		}
-		return GAME_STATE_PLAYING;
-	}
-
-	if (cell->mine) {
-		for (int i = 0; i < BOARD_SIZE * BOARD_SIZE; i++) {
-			if (board->cells[i].mine) {
-				board->cells[i].revealed = true;
+	} else if (move_type == MOVE_TYPE_REVEAL) {
+		if (cell->mine) {
+			for (int i = 0; i < BOARD_SIZE * BOARD_SIZE; i++) {
+				if (board->cells[i].mine) {
+					board->cells[i].revealed = true;
+				}
 			}
 		}
-		board->state = GAME_STATE_LOST;
-		return GAME_STATE_LOST;
-	}
 
-	cell->revealed = true;
+		cell->revealed = true;
 
-	if (cell->adjacent_mines == 0) {
-		for (int j = -1; j <= 1; j++) {
-			for (int k = -1; k <=1; k++) {
-				if (j == 0 && k == 0) {
-					continue;
+		if (cell->adjacent_mines == 0) {
+			for (int j = -1; j <= 1; j++) {
+				for (int k = -1; k <=1; k++) {
+					if (j == 0 && k == 0) {
+						continue;
+					}
+					int x2 = x + j;
+					int y2 = y + k;
+					if (x2 < 0 || x2 >= BOARD_SIZE || y2 < 0 || y2 >= BOARD_SIZE) {
+						continue;
+					}
+					make_move(board, MOVE_TYPE_REVEAL, x2, y2);
 				}
-				int x2 = x + j;
-				int y2 = y + k;
-				if (x2 < 0 || x2 >= BOARD_SIZE || y2 < 0 || y2 >= BOARD_SIZE) {
-					continue;
-				}
-				make_move(board, MOVE_TYPE_REVEAL, x2, y2);
 			}
 		}
+	} else {
+		fwprintf(stderr, L"Invalid move type: %d\n", move_type);
+		exit(1);
+		return;
 	}
-
-	if (board->flags_remaining == 0) {
-		board->state = GAME_STATE_WON;
-	}
-
-	return board->state;
 }
 
+game_state_t evaluate_state(board_t *board) {
+	if (board->flags_remaining == 0) {
+		for (int i = 0; i < BOARD_SIZE * BOARD_SIZE; i++) {
+			if (board->cells[i].mine && !board->cells[i].flagged) {
+				return GAME_STATE_PLAYING;
+			}
+		}
+		return GAME_STATE_WON;
+	}
+
+	for (int i = 0; i < BOARD_SIZE * BOARD_SIZE; i++) {
+		if (board->cells[i].revealed && board->cells[i].mine) {
+			return GAME_STATE_LOST;
+		}
+	}
+	return GAME_STATE_PLAYING;
+}

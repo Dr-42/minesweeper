@@ -30,6 +30,7 @@ typedef enum move_type_t {
 
 board_t* board_init();
 void board_free(board_t *board);
-game_state_t make_move(board_t *board, move_type_t move_type, uint8_t x, uint8_t y);
+void make_move(board_t *board, move_type_t move_type, uint8_t x, uint8_t y);
+game_state_t evaluate_state(board_t *board);
 
 #endif // BOARD_H
